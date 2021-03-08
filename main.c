@@ -22,7 +22,7 @@ void memory_init(void *ptr, unsigned int size)
     p_memory_start = ptr;
     
     // set main headers with max allocateable bytes
-    *((int*)ptr) = size - 3 * sizeof(int);
+    *((int*)ptr) = size;
     *((int*)(ptr+sizeof(int))) = size - 3 * sizeof(int);
     
     printf("MAX ALLOCATEABLE BYTES: %d\n", *((int*)ptr));
@@ -76,13 +76,10 @@ void memory_set_unallocated_bytes(unsigned int size, int offset)
 
 void *memory_alloc(unsigned int size)
 {
-    void *p_memory_temp = p_memory_start + sizeof(int), *p_memory_header = p_memory_start, *p_block = NULL, *p_end_pointer = p_memory_start + MAX_SIZE - 1;
+    void *p_memory_temp = p_memory_start + sizeof(int), *p_memory_header = p_memory_start, *p_block = NULL, *p_end_pointer = p_memory_start + *(int*)p_memory_start;
     int max_allocateable_size = *(int*)p_memory_start;
     
     //*(int*)p_memory_temp = size;
-    
-    if (max_allocateable_size < size + 2*sizeof(int))
-        return NULL;
     
     while (p_memory_temp < p_end_pointer) {
         
@@ -98,9 +95,7 @@ void *memory_alloc(unsigned int size)
                 */
                 // je tam miesto aj pre dalsi free blok
                 if (block_size - size - sizeof(int) >= 2*sizeof(int)) {
-                    
-                    *(int*)p_memory_header = max_allocateable_size - size - 2*sizeof(int);
-                    
+                                        
                     *(int*)p_memory_temp = size * -1;
                     p_memory_temp += sizeof(int);
                     p_block = p_memory_temp;
@@ -132,7 +127,6 @@ void *memory_alloc(unsigned int size)
                         *((char*)(p_memory_temp + i)) = ALLOCATED_WORD;
                     p_memory_temp += block_size;
                     *(int*)p_memory_temp = block_size * -1;
-                    *(int*)p_memory_header = max_allocateable_size - block_size - 2*sizeof(int);
                     //return p_block;
                 }
                 
@@ -186,7 +180,7 @@ int memory_free(void *ptr)
         p_memory_previous_header = p_memory_previous_footer - *(int*)p_memory_previous_footer - sizeof(int);
     }
     
-    if (ptr + (*(int*)p_memory_temp * -1) + 2*sizeof(int) < p_memory_start + MAX_SIZE) {
+    if (ptr + (*(int*)p_memory_temp * -1) + 2*sizeof(int) < p_memory_start + *(int*)p_memory_start) {
         p_memory_next_header = ptr + (-1 * *(int*)p_memory_temp) + sizeof(int);
         p_memory_next_footer = p_memory_next_header + *(int*)p_memory_next_header + sizeof(int);
     }
@@ -300,7 +294,7 @@ int memory_free(void *ptr)
 
 int memory_check(void *ptr)
 {
-    if(ptr > p_memory_start || ptr < p_memory_start + MAX_SIZE)
+    if(ptr > p_memory_start || ptr < p_memory_start + *(int*)p_memory_start)
         return (ptr == NULL) ? 0 : (*(int*)(ptr-sizeof(int)) < 0) ? 1 : 0;
     else
         return 0;
